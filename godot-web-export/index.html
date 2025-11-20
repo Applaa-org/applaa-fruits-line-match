@@ -47,14 +47,6 @@
             margin-bottom: 20px;
             line-height: 1.5;
         }
-        .controls {
-            margin-top: 15px;
-            color: #ffffff;
-            font-size: 14px;
-            background: rgba(0,0,0,0.3);
-            padding: 10px;
-            border-radius: 10px;
-        }
         .ui {
             display: flex;
             justify-content: space-between;
@@ -67,6 +59,22 @@
         }
         .moves {
             color: #ff8c42;
+        }
+        .powerups {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .powerup {
+            padding: 5px 10px;
+            border-radius: 5px;
+            background: rgba(0,0,0,0.3);
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .powerup:hover {
+            background: rgba(255,255,255,0.2);
         }
         .screen {
             position: absolute;
@@ -112,20 +120,27 @@
 <body>
     <div id="gameContainer">
         <h1>🍎 Fruits Line Match</h1>
-        <div class="info">A vibrant 2D match-3 puzzle game where players swap colorful fruit tiles on a grid to create matches of three or more, earning points and completing level objectives with limited moves.</div>
+        <div class="info">A vibrant 2D match-3 puzzle game where players swap colorful fruit tiles on a grid to create matches of three or more, earning points, power-ups, and completing level objectives with limited moves.</div>
         <div class="ui">
             <div class="score">Score: <span id="score">0</span></div>
             <div class="moves">Moves: <span id="moves">30</span></div>
         </div>
-        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div class="powerups">
+            <div class="powerup" id="bombPowerup">💣 Bomb (500)</div>
+            <div class="powerup" id="rainbowPowerup">🌈 Rainbow (750)</div>
+            <div class="powerup" id="shufflePowerup">🔄 Shuffle (300)</div>
+        </div>
+        <canvas id="gameCanvas" width="512" height="512"></canvas>
         <div class="controls">
             Click to select a tile, then click an adjacent tile to swap.<br>
             Create lines of 3 or more fruits to score points!<br>
-            Reach 5000 points to win, or lose when moves run out.
+            Use power-ups to help you reach 5000 points before moves run out.
         </div>
         <div id="startScreen" class="screen show">
             <h2>Welcome to Fruits Line Match!</h2>
-            <p>Ready to play?</p>
+            <p>A vibrant 2D match-3 puzzle game!</p>
+            <p>How to Play:<br>- Click to select a tile<br>- Click an adjacent tile to swap<br>- Create lines of 3 or more fruits<br>- Earn points and power-ups<br>- Reach 5000 points to win!</p>
+            <p>Controls:<br>- Mouse: Click to select and swap<br>- WASD: Navigate and select<br>- Space: Confirm selection/swap</p>
             <button id="startButton">Start Game</button>
         </div>
         <div id="victoryScreen" class="screen">
@@ -145,6 +160,9 @@
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
         const movesElement = document.getElementById('moves');
+        const bombPowerup = document.getElementById('bombPowerup');
+        const rainbowPowerup = document.getElementById('rainbowPowerup');
+        const shufflePowerup = document.getElementById('shufflePowerup');
         const startScreen = document.getElementById('startScreen');
         const victoryScreen = document.getElementById('victoryScreen');
         const defeatScreen = document.getElementById('defeatScreen');
@@ -152,14 +170,14 @@
         const restartButton = document.getElementById('restartButton');
         const tryAgainButton = document.getElementById('tryAgainButton');
         
-        // Game constants
+        // Game constants (matching Board.gd)
         const BOARD_WIDTH = 8;
         const BOARD_HEIGHT = 8;
-        const TILE_SIZE = 45;
+        const TILE_SIZE = 64;
         const TILE_TYPES = ['🍎', '🍌', '🍊', '🍇', '🥭', '🍒'];
         const COLORS = ['#ff6b6b', '#ffd93d', '#ff8c42', '#6bcf7f', '#4ecdc4', '#45b7d1'];
         
-        // Game state
+        // Game state (matching Main.gd)
         let board = [];
         let score = 0;
         let movesLeft = 30;
@@ -167,6 +185,7 @@
         let selectedTile = null;
         let gameStarted = false;
         let particles = [];
+        let powerupCosts = { bomb: 500, rainbow: 750, shuffle: 300 };
         
         // Initialize game
         function initGame() {
@@ -207,9 +226,11 @@
             
             // Draw tiles
             for (let y = 0; y < BOARD_HEIGHT; y++) {
+                for (let x            // Draw tiles
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
                 for (let x = 0; x < BOARD_WIDTH; x++) {
-                    const tileX = x * TILE_SIZE + 10;
-                    const tileY = y * TILE_SIZE + 10;
+                    const tileX = x * TILE_SIZE;
+                    const tileY = y * TILE_SIZE;
                     
                     // Tile background
                     ctx.fillStyle = COLORS[board[y][x]];
@@ -221,10 +242,10 @@
                     ctx.strokeRect(tileX, tileY, TILE_SIZE - 4, TILE_SIZE - 4);
                     
                     // Fruit emoji
-                    ctx.font = '30px Arial';
+                    ctx.font = '40px Arial';
                     ctx.textAlign = 'center';
                     ctx.fillStyle = '#ffffff';
-                    ctx.fillText(TILE_TYPES[board[y][x]], tileX + (TILE_SIZE - 4) / 2, tileY + (TILE_SIZE - 4) / 2 + 10);
+                    ctx.fillText(TILE_TYPES[board[y][x]], tileX + (TILE_SIZE - 4) / 2, tileY + (TILE_SIZE - 4) / 2 + 15);
                     
                     // Highlight selected tile
                     if (selectedTile && selectedTile.x === x && selectedTile.y === y) {
@@ -255,8 +276,8 @@
             if (!gameStarted) return;
             
             const rect = canvas.getBoundingClientRect();
-            const clickX = e.clientX - rect.left - 10;
-            const clickY = e.clientY - rect.top - 10;
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
             const gridX = Math.floor(clickX / TILE_SIZE);
             const gridY = Math.floor(clickY / TILE_SIZE);
             
@@ -270,12 +291,12 @@
             if (selectedTile === null) {
                 selectedTile = { x, y };
             } else {
-                if (Math.abs(selectedTile.x - x) + Math.abs(selectedTile.y - y) === 1) {
+                if (isAdjacent(selectedTile, { x, y })) {
                     swapTiles(selectedTile, { x, y });
                     movesLeft--;
                     updateUI();
                     
-                    if (!checkForMatches()) {
+                    if (!processMatches()) {
                         // No match, swap back
                         setTimeout(() => {
                             swapTiles({ x, y }, selectedTile);
@@ -283,7 +304,7 @@
                     } else {
                         // Check for cascading matches
                         setTimeout(() => {
-                            while (checkForMatches()) {}
+                            while (processMatches()) {}
                         }, 300);
                     }
                     
@@ -295,6 +316,13 @@
                 }
                 selectedTile = null;
             }
+        }
+        
+        // Check if tiles are adjacent
+        function isAdjacent(pos1, pos2) {
+            const dx = Math.abs(pos1.x - pos2.x);
+            const dy = Math.abs(pos1.y - pos2.y);
+            return (dx === 1 && dy === 0) || (dx === 0 && dy === 1);
         }
         
         // Swap tiles
@@ -355,8 +383,8 @@
             return matches;
         }
         
-        // Check for matches and process them
-        function checkForMatches() {
+        // Process matches and remove them
+        function processMatches() {
             const matches = findMatches();
             if (matches.length > 0) {
                 removeMatches(matches);
@@ -373,11 +401,6 @@
         function removeMatches(matches) {
             matches.forEach(match => {
                 createParticles(match.x, match.y, COLORS[board[match.y][match.x]]);
-                board[match.y][match<applaa-write path="godot-web-export/index.html" description="Continuing and completing the index.html file for Fruits Line Match - finishing the match-3 game logic, particle effects, UI updates, victory/defeat screens, and event handlers">
-        // Remove matched tiles
-        function removeMatches(matches) {
-            matches.forEach(match => {
-                createParticles(match.x, match.y, COLORS[board[match.y][match.x]]);
                 board[match.y][match.x] = -1;
             });
         }
@@ -386,8 +409,8 @@
         function createParticles(x, y, color) {
             for (let i = 0; i < 8; i++) {
                 particles.push({
-                    x: x * TILE_SIZE + 10 + TILE_SIZE / 2,
-                    y: y * TILE_SIZE + 10 + TILE_SIZE / 2,
+                    x: x * TILE_SIZE + TILE_SIZE / 2,
+                    y: y * TILE_SIZE + TILE_SIZE / 2,
                     vx: (Math.random() - 0.5) * 4,
                     vy: (Math.random() - 0.5) * 4 - 2,
                     size: Math.random() * 3 + 2,
@@ -429,6 +452,55 @@
             scoreElement.textContent = score;
             movesElement.textContent = movesLeft;
         }
+        
+        // Power-up functions
+        bombPowerup.addEventListener('click', () => {
+            if (score >= powerupCosts.bomb && selectedTile) {
+                score -= powerupCosts.bomb;
+                // Clear 3x3 area
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        const nx = selectedTile.x + dx;
+                        const ny = selectedTile.y + dy;
+                        if (nx >= 0 && nx < BOARD_WIDTH && ny >= 0 && ny < BOARD_HEIGHT) {
+                            createParticles(nx, ny, COLORS[board[ny][nx]]);
+                            board[ny][nx] = -1;
+                        }
+                    }
+                }
+                dropTiles();
+                fillEmptySpaces();
+                updateUI();
+                selectedTile = null;
+            }
+        });
+        
+        rainbowPowerup.addEventListener('click', () => {
+            if (score >= powerupCosts.rainbow && selectedTile) {
+                score -= powerupCosts.rainbow;
+                const targetType = board[selectedTile.y][selectedTile.x];
+                for (let y = 0; y < BOARD_HEIGHT; y++) {
+                    for (let x = 0; x < BOARD_WIDTH; x++) {
+                        if (board[y][x] === targetType) {
+                            createParticles(x, y, COLORS[targetType]);
+                            board[y][x] = -1;
+                        }
+                    }
+                }
+                dropTiles();
+                fillEmptySpaces();
+                updateUI();
+                selectedTile = null;
+            }
+        });
+        
+        shufflePowerup.addEventListener('click', () => {
+            if (score >= powerupCosts.shuffle) {
+                score -= powerupCosts.shuffle;
+                shuffleBoard();
+                updateUI();
+            }
+        });
         
         // Show victory screen
         function showVictory() {
@@ -492,18 +564,18 @@
                     case 'a': case 'arrowleft': newX = Math.max(0, newX - 1); break;
                     case 'd': case 'arrowright': newX = Math.min(BOARD_WIDTH - 1, newX + 1); break;
                     case ' ': 
-                        if (Math.abs(selectedTile.x - newX) + Math.abs(selectedTile.y - newY) === 1) {
+                        if (isAdjacent(selectedTile, { x: newX, y: newY })) {
                             handleTileClick(newX, newY);
                         }
                         return;
                 }
-                if (Math.abs(selectedTile.x - newX) + Math.abs(selectedTile.y - newY) === 1) {
+                if (isAdjacent(selectedTile, { x: newX, y: newY })) {
                     handleTileClick(newX, newY);
                 }
             }
         });
         
-        console.log('🎮 Applaa game preview loaded successfully! Type: puzzle - Fruits Line Match');
+        console.log('🎮 Applaa game preview loaded successfully! Type: puzzle - Fruits Line Match with power-ups');
     </script>
 </body>
 </html>

@@ -23,7 +23,7 @@
     "name": "Player",
     "type": "controller",
     "health": 100,
-    "abilities": ["swap_tiles"]
+    "abilities": ["swap_tiles", "use_power_ups"]
   },
   "board": {
     "width": 8,
@@ -34,11 +34,55 @@
   "gameplay": {
     "moves_limit": 30,
     "score_target": 5000,
-    "power_ups": ["bomb", "rainbow", "shuffle"],
+    "power_ups": [
+      {
+        "name": "bomb",
+        "description": "Clears a 3x3 area around the selected tile",
+        "cost": 500,
+        "effect": "area_clear"
+      },
+      {
+        "name": "rainbow",
+        "description": "Matches all tiles of the same type as the selected tile",
+        "cost": 750,
+        "effect": "color_match"
+      },
+      {
+        "name": "shuffle",
+        "description": "Reshuffles the entire board",
+        "cost": 300,
+        "effect": "reshuffle"
+      }
+    ],
     "match_requirements": 3,
     "particle_effects": true
   },
   "scenes": [
+    {
+      "name": "StartScreen",
+      "type": "2D",
+      "path": "res://scenes/StartScreen.tscn",
+      "nodes": [
+        {
+          "name": "Title",
+          "type": "Label",
+          "text": "Fruits Line Match",
+          "position": { "x": 400, "y": 125 }
+        },
+        {
+          "name": "Instructions",
+          "type": "Label",
+          "text": "A vibrant 2D match-3 puzzle game!\n\nHow to Play:\n- Click to select a tile\n- Click an adjacent tile to swap\n- Create lines of 3 or more fruits\n- Earn points and power-ups\n- Reach 5000 points to win!\n\nControls:\n- Mouse: Click to select and swap\n- WASD: Navigate and select\n- Space: Confirm selection/swap\n\nGood luck!",
+          "position": { "x": 400, "y": 275 }
+        },
+        {
+          "name": "StartButton",
+          "type": "Button",
+          "text": "Start Game",
+          "position": { "x": 400, "y": 450 }
+        }
+      ]
+    },
     {
       "name": "Main",
       "type": "2D",
@@ -47,7 +91,7 @@
         {
           "name": "Board",
           "type": "Node2D",
-          "position": { "x": 400, "y": 300 },
+          "position": { "x": 176, "y": 100 },
           "script": "res://scripts/Board.gd"
         },
         {
@@ -57,13 +101,13 @@
             {
               "name": "ScoreLabel",
               "type": "Label",
-              "position": { "x": 50, "y": 50 },
+              "position": { "x": 600, "y": 20 },
               "text": "Score: 0"
             },
             {
               "name": "MovesLabel",
               "type": "Label",
-              "position": { "x": 50, "y": 80 },
+              "position": { "x": 600, "y": 50 },
               "text": "Moves: 30"
             },
             {
@@ -101,31 +145,6 @@
               ]
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "StartScreen",
-      "type": "2D",
-      "path": "res://scenes/StartScreen.tscn",
-      "nodes": [
-        {
-          "name": "Title",
-          "type": "Label",
-          "text": "Fruits Line Match",
-          "position": { "x": 400, "y": 200 }
-        },
-        {
-          "name": "Instructions",
-          "type": "Label",
-          "text": "Swap adjacent fruits to create lines of 3 or more.\nEarn points and complete objectives!\n\nControls: Click to select, click adjacent to swap.\nW/A/S/D to navigate, Space to confirm.",
-          "position": { "x": 400, "y": 300 }
-        },
-        {
-          "name": "StartButton",
-          "type": "Button",
-          "text": "Start Game",
-          "position": { "x": 400, "y": 400 }
         }
       ]
     }
