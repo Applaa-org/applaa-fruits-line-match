@@ -1,0 +1,225 @@
+{
+  "game": {
+    "name": "Fruits Line Match",
+    "type": "2D",
+    "description": "A vibrant 2D match-3 puzzle game where players swap colorful fruit tiles on a grid to create matches of three or more, earning points, power-ups, and completing level objectives with limited moves.",
+    "genre": "puzzle",
+    "version": "1.0.0"
+  },
+  "settings": {
+    "window": {
+      "width": 800,
+      "height": 600,
+      "resizable": false
+    },
+    "physics": {
+      "enabled": false
+    },
+    "rendering": {
+      "antialiasing": true
+    }
+  },
+  "player": {
+    "name": "Player",
+    "type": "controller",
+    "health": 100,
+    "abilities": ["swap_tiles"]
+  },
+  "board": {
+    "width": 8,
+    "height": 8,
+    "tile_types": ["apple", "banana", "orange", "grape", "mango", "cherry"],
+    "colors": ["#ff6b6b", "#ffd93d", "#ff8c42", "#6bcf7f", "#4ecdc4", "#45b7d1"]
+  },
+  "gameplay": {
+    "moves_limit": 30,
+    "score_target": 5000,
+    "power_ups": ["bomb", "rainbow", "shuffle"],
+    "match_requirements": 3,
+    "particle_effects": true
+  },
+  "scenes": [
+    {
+      "name": "Main",
+      "type": "2D",
+      "path": "res://scenes/Main.tscn",
+      "nodes": [
+        {
+          "name": "Board",
+          "type": "Node2D",
+          "position": { "x": 400, "y": 300 },
+          "script": "res://scripts/Board.gd"
+        },
+        {
+          "name": "UI",
+          "type": "CanvasLayer",
+          "children": [
+            {
+              "name": "ScoreLabel",
+              "type": "Label",
+              "position": { "x": 50, "y": 50 },
+              "text": "Score: 0"
+            },
+            {
+              "name": "MovesLabel",
+              "type": "Label",
+              "position": { "x": 50, "y": 80 },
+              "text": "Moves: 30"
+            },
+            {
+              "name": "VictoryScreen",
+              "type": "Panel",
+              "visible": false,
+              "children": [
+                {
+                  "name": "VictoryLabel",
+                  "type": "Label",
+                  "text": "Level Complete!"
+                },
+                {
+                  "name": "RestartButton",
+                  "type": "Button",
+                  "text": "Restart"
+                }
+              ]
+            },
+            {
+              "name": "DefeatScreen",
+              "type": "Panel",
+              "visible": false,
+              "children": [
+                {
+                  "name": "DefeatLabel",
+                  "type": "Label",
+                  "text": "Out of Moves!"
+                },
+                {
+                  "name": "RestartButton",
+                  "type": "Button",
+                  "text": "Try Again"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "StartScreen",
+      "type": "2D",
+      "path": "res://scenes/StartScreen.tscn",
+      "nodes": [
+        {
+          "name": "Title",
+          "type": "Label",
+          "text": "Fruits Line Match",
+          "position": { "x": 400, "y": 200 }
+        },
+        {
+          "name": "Instructions",
+          "type": "Label",
+          "text": "Swap adjacent fruits to create lines of 3 or more.\nEarn points and complete objectives!\n\nControls: Click to select, click adjacent to swap.\nW/A/S/D to navigate, Space to confirm.",
+          "position": { "x": 400, "y": 300 }
+        },
+        {
+          "name": "StartButton",
+          "type": "Button",
+          "text": "Start Game",
+          "position": { "x": 400, "y": 400 }
+        }
+      ]
+    }
+  ],
+  "assets": {
+    "sprites": [
+      {
+        "name": "apple_tile",
+        "path": "res://assets/sprites/apple.png",
+        "type": "tile",
+        "color": "#ff6b6b"
+      },
+      {
+        "name": "banana_tile",
+        "path": "res://assets/sprites/banana.png",
+        "type": "tile",
+        "color": "#ffd93d"
+      },
+      {
+        "name": "orange_tile",
+        "path": "res://assets/sprites/orange.png",
+        "type": "tile",
+        "color": "#ff8c42"
+      },
+      {
+        "name": "grape_tile",
+        "path": "res://assets/sprites/grape.png",
+        "type": "tile",
+        "color": "#6bcf7f"
+      },
+      {
+        "name": "mango_tile",
+        "path": "res://assets/sprites/mango.png",
+        "type": "tile",
+        "color": "#4ecdc4"
+      },
+      {
+        "name": "cherry_tile",
+        "path": "res://assets/sprites/cherry.png",
+        "type": "tile",
+        "color": "#45b7d1"
+      },
+      {
+        "name": "particle_effect",
+        "path": "res://assets/sprites/particle.png",
+        "type": "effect"
+      },
+      {
+        "name": "ui_score",
+        "path": "res://assets/sprites/ui_score.png",
+        "type": "ui"
+      },
+      {
+        "name": "ui_moves",
+        "path": "res://assets/sprites/ui_moves.png",
+        "type": "ui"
+      }
+    ],
+    "sounds": [
+      {
+        "name": "swap",
+        "path": "res://assets/sounds/swap.wav",
+        "type": "sfx"
+      },
+      {
+        "name": "match",
+        "path": "res://assets/sounds/match.wav",
+        "type": "sfx"
+      },
+      {
+        "name": "powerup",
+        "path": "res://assets/sounds/powerup.wav",
+        "type": "sfx"
+      },
+      {
+        "name": "level_complete",
+        "path": "res://assets/sounds/level_complete.wav",
+        "type": "sfx"
+      }
+    ],
+    "music": [
+      {
+        "name": "background",
+        "path": "res://assets/music/cheerful_puzzle.ogg"
+      }
+    ]
+  },
+  "logic": {
+    "winCondition": "reach_score_target",
+    "loseCondition": "moves_depleted",
+    "scoring": {
+      "pointsPerMatch": 100,
+      "pointsPerPowerUp": 500,
+      "bonusMultiplier": 1.5
+    }
+  }
+}

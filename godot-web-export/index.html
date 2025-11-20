@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fruits Line Match</title>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            color: #ffffff;
+        }
+        #gameContainer {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+        #gameCanvas {
+            border: 3px solid #ff6b6b;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            box-shadow: 0 4px 20px rgba(255, 107, 107, 0.3);
+            display: block;
+            margin: 20px auto;
+            cursor: pointer;
+        }
+        h1 {
+            color: #ffd93d;
+            margin-bottom: 10px;
+            font-size: 36px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .info {
+            color: #cccccc;
+            font-size: 16px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .controls {
+            margin-top: 15px;
+            color: #ffffff;
+            font-size: 14px;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .ui {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .score {
+            color: #4ade80;
+        }
+        .moves {
+            color: #ff8c42;
+        }
+        .screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            display: none;
+        }
+        .screen.show {
+            display: block;
+        }
+        .screen h2 {
+            color: #ffd93d;
+            margin-bottom: 20px;
+        }
+        .screen button {
+            background: linear-gradient(135deg, #ff6b6b, #ffd93d);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.2s;
+        }
+        .screen button:hover {
+            transform: scale(1.05);
+        }
+        .tile {
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .selected {
+            box-shadow: 0 0 0 3px #ffffff, 0 0 0 6px #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <h1>🍎 Fruits Line Match</h1>
+        <div class="info">A vibrant 2D match-3 puzzle game where players swap colorful fruit tiles on a grid to create matches of three or more, earning points and completing level objectives with limited moves.</div>
+        <div class="ui">
+            <div class="score">Score: <span id="score">0</span></div>
+            <div class="moves">Moves: <span id="moves">30</span></div>
+        </div>
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div class="controls">
+            Click to select a tile, then click an adjacent tile to swap.<br>
+            Create lines of 3 or more fruits to score points!<br>
+            Reach 5000 points to win, or lose when moves run out.
+        </div>
+        <div id="startScreen" class="screen show">
+            <h2>Welcome to Fruits Line Match!</h2>
+            <p>Ready to play?</p>
+            <button id="startButton">Start Game</button>
+        </div>
+        <div id="victoryScreen" class="screen">
+            <h2>🎉 Level Complete!</h2>
+            <p>You reached the score target!</p>
+            <button id="restartButton">Play Again</button>
+        </div>
+        <div id="defeatScreen" class="screen">
+            <h2>😔 Out of Moves!</h2>
+            <p>Better luck next time!</p>
+            <button id="tryAgainButton">Try Again</button>
+        </div>
+        <div id="status" style="margin-top: 10px; color: #4ade80; font-size: 12px;">Game loaded successfully!</div>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const movesElement = document.getElementById('moves');
+        const startScreen = document.getElementById('startScreen');
+        const victoryScreen = document.getElementById('victoryScreen');
+        const defeatScreen = document.getElementById('defeatScreen');
+        const startButton = document.getElementById('startButton');
+        const restartButton = document.getElementById('restartButton');
+        const tryAgainButton = document.getElementById('tryAgainButton');
+        
+        // Game constants
+        const BOARD_WIDTH = 8;
+        const BOARD_HEIGHT = 8;
+        const TILE_SIZE = 45;
+        const TILE_TYPES = ['🍎', '🍌', '🍊', '🍇', '🥭', '🍒'];
+        const COLORS = ['#ff6b6b', '#ffd93d', '#ff8c42', '#6bcf7f', '#4ecdc4', '#45b7d1'];
+        
+        // Game state
+        let board = [];
+        let score = 0;
+        let movesLeft = 30;
+        let scoreTarget = 5000;
+        let selectedTile = null;
+        let gameStarted = false;
+        let particles = [];
+        
+        // Initialize game
+        function initGame() {
+            board = [];
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                board[y] = [];
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    board[y][x] = Math.floor(Math.random() * TILE_TYPES.length);
+                }
+            }
+            // Ensure no initial matches
+            while (findMatches().length > 0) {
+                shuffleBoard();
+            }
+            score = 0;
+            movesLeft = 30;
+            selectedTile = null;
+            particles = [];
+            updateUI();
+        }
+        
+        // Shuffle board
+        function shuffleBoard() {
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    board[y][x] = Math.floor(Math.random() * TILE_TYPES.length);
+                }
+            }
+        }
+        
+        // Draw game
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid background
+            ctx.fillStyle = '#2a2a4a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw tiles
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    const tileX = x * TILE_SIZE + 10;
+                    const tileY = y * TILE_SIZE + 10;
+                    
+                    // Tile background
+                    ctx.fillStyle = COLORS[board[y][x]];
+                    ctx.fillRect(tileX, tileY, TILE_SIZE - 4, TILE_SIZE - 4);
+                    
+                    // Tile border
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(tileX, tileY, TILE_SIZE - 4, TILE_SIZE - 4);
+                    
+                    // Fruit emoji
+                    ctx.font = '30px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(TILE_TYPES[board[y][x]], tileX + (TILE_SIZE - 4) / 2, tileY + (TILE_SIZE - 4) / 2 + 10);
+                    
+                    // Highlight selected tile
+                    if (selectedTile && selectedTile.x === x && selectedTile.y === y) {
+                        ctx.strokeStyle = '#ffff00';
+                        ctx.lineWidth = 4;
+                        ctx.strokeRect(tileX - 2, tileY - 2, TILE_SIZE, TILE_SIZE);
+                    }
+                }
+            }
+            
+            // Draw particles
+            particles.forEach((particle, index) => {
+                ctx.fillStyle = particle.color;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                ctx.fill();
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.life--;
+                if (particle.life <= 0) {
+                    particles.splice(index, 1);
+                }
+            });
+        }
+        
+        // Handle mouse clicks
+        canvas.addEventListener('click', (e) => {
+            if (!gameStarted) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left - 10;
+            const clickY = e.clientY - rect.top - 10;
+            const gridX = Math.floor(clickX / TILE_SIZE);
+            const gridY = Math.floor(clickY / TILE_SIZE);
+            
+            if (gridX >= 0 && gridX < BOARD_WIDTH && gridY >= 0 && gridY < BOARD_HEIGHT) {
+                handleTileClick(gridX, gridY);
+            }
+        });
+        
+        // Handle tile clicks
+        function handleTileClick(x, y) {
+            if (selectedTile === null) {
+                selectedTile = { x, y };
+            } else {
+                if (Math.abs(selectedTile.x - x) + Math.abs(selectedTile.y - y) === 1) {
+                    swapTiles(selectedTile, { x, y });
+                    movesLeft--;
+                    updateUI();
+                    
+                    if (!checkForMatches()) {
+                        // No match, swap back
+                        setTimeout(() => {
+                            swapTiles({ x, y }, selectedTile);
+                        }, 200);
+                    } else {
+                        // Check for cascading matches
+                        setTimeout(() => {
+                            while (checkForMatches()) {}
+                        }, 300);
+                    }
+                    
+                    if (score >= scoreTarget) {
+                        showVictory();
+                    } else if (movesLeft <= 0) {
+                        showDefeat();
+                    }
+                }
+                selectedTile = null;
+            }
+        }
+        
+        // Swap tiles
+        function swapTiles(pos1, pos2) {
+            const temp = board[pos1.y][pos1.x];
+            board[pos1.y][pos1.x] = board[pos2.y][pos2.x];
+            board[pos2.y][pos2.x] = temp;
+        }
+        
+        // Find matches
+        function findMatches() {
+            const matches = [];
+            
+            // Horizontal matches
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                let count = 1;
+                for (let x = 1; x < BOARD_WIDTH; x++) {
+                    if (board[y][x] === board[y][x - 1]) {
+                        count++;
+                    } else {
+                        if (count >= 3) {
+                            for (let i = x - count; i < x; i++) {
+                                matches.push({ x: i, y });
+                            }
+                        }
+                        count = 1;
+                    }
+                }
+                if (count >= 3) {
+                    for (let i = BOARD_WIDTH - count; i < BOARD_WIDTH; i++) {
+                        matches.push({ x: i, y });
+                    }
+                }
+            }
+            
+            // Vertical matches
+            for (let x = 0; x < BOARD_WIDTH; x++) {
+                let count = 1;
+                for (let y = 1; y < BOARD_HEIGHT; y++) {
+                    if (board[y][x] === board[y - 1][x]) {
+                        count++;
+                    } else {
+                        if (count >= 3) {
+                            for (let i = y - count; i < y; i++) {
+                                matches.push({ x, y: i });
+                            }
+                        }
+                        count = 1;
+                    }
+                }
+                if (count >= 3) {
+                    for (let i = BOARD_HEIGHT - count; i < BOARD_HEIGHT; i++) {
+                        matches.push({ x, y: i });
+                    }
+                }
+            }
+            
+            return matches;
+        }
+        
+        // Check for matches and process them
+        function checkForMatches() {
+            const matches = findMatches();
+            if (matches.length > 0) {
+                removeMatches(matches);
+                dropTiles();
+                fillEmptySpaces();
+                score += matches.length * 100;
+                updateUI();
+                return true;
+            }
+            return false;
+        }
+        
+        // Remove matched tiles
+        function removeMatches(matches) {
+            matches.forEach(match => {
+                createParticles(match.x, match.y, COLORS[board[match.y][match.x]]);
+                board[match.y][match<applaa-write path="godot-web-export/index.html" description="Continuing and completing the index.html file for Fruits Line Match - finishing the match-3 game logic, particle effects, UI updates, victory/defeat screens, and event handlers">
+        // Remove matched tiles
+        function removeMatches(matches) {
+            matches.forEach(match => {
+                createParticles(match.x, match.y, COLORS[board[match.y][match.x]]);
+                board[match.y][match.x] = -1;
+            });
+        }
+        
+        // Create particle effects
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x: x * TILE_SIZE + 10 + TILE_SIZE / 2,
+                    y: y * TILE_SIZE + 10 + TILE_SIZE / 2,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 0.5) * 4 - 2,
+                    size: Math.random() * 3 + 2,
+                    color: color,
+                    life: 30
+                });
+            }
+        }
+        
+        // Drop tiles down
+        function dropTiles() {
+            for (let x = 0; x < BOARD_WIDTH; x++) {
+                let writePos = BOARD_HEIGHT - 1;
+                for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+                    if (board[y][x] !== -1) {
+                        board[writePos][x] = board[y][x];
+                        if (writePos !== y) {
+                            board[y][x] = -1;
+                        }
+                        writePos--;
+                    }
+                }
+            }
+        }
+        
+        // Fill empty spaces with new tiles
+        function fillEmptySpaces() {
+            for (let x = 0; x < BOARD_WIDTH; x++) {
+                for (let y = 0; y < BOARD_HEIGHT; y++) {
+                    if (board[y][x] === -1) {
+                        board[y][x] = Math.floor(Math.random() * TILE_TYPES.length);
+                    }
+                }
+            }
+        }
+        
+        // Update UI elements
+        function updateUI() {
+            scoreElement.textContent = score;
+            movesElement.textContent = movesLeft;
+        }
+        
+        // Show victory screen
+        function showVictory() {
+            victoryScreen.classList.add('show');
+        }
+        
+        // Show defeat screen
+        function showDefeat() {
+            defeatScreen.classList.add('show');
+        }
+        
+        // Game loop
+        function gameLoop() {
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Event listeners
+        startButton.addEventListener('click', () => {
+            startScreen.classList.remove('show');
+            gameStarted = true;
+            initGame();
+            gameLoop();
+        });
+        
+        restartButton.addEventListener('click', () => {
+            victoryScreen.classList.remove('show');
+            initGame();
+        });
+        
+        tryAgainButton.addEventListener('click', () => {
+            defeatScreen.classList.remove('show');
+            initGame();
+        });
+        
+        // Keyboard controls for navigation
+        document.addEventListener('keydown', (e) => {
+            if (!gameStarted) return;
+            
+            if (selectedTile === null) {
+                // Navigate to select tile
+                let newX = selectedTile ? selectedTile.x : 0;
+                let newY = selectedTile ? selectedTile.y : 0;
+                
+                switch (e.key.toLowerCase()) {
+                    case 'w': case 'arrowup': newY = Math.max(0, newY - 1); break;
+                    case 's': case 'arrowdown': newY = Math.min(BOARD_HEIGHT - 1, newY + 1); break;
+                    case 'a': case 'arrowleft': newX = Math.max(0, newX - 1); break;
+                    case 'd': case 'arrowright': newX = Math.min(BOARD_WIDTH - 1, newX + 1); break;
+                    case ' ': selectedTile = { x: newX, y: newY }; return;
+                }
+                selectedTile = { x: newX, y: newY };
+            } else {
+                // Move selected tile
+                let newX = selectedTile.x;
+                let newY = selectedTile.y;
+                
+                switch (e.key.toLowerCase()) {
+                    case 'w': case 'arrowup': newY = Math.max(0, newY - 1); break;
+                    case 's': case 'arrowdown': newY = Math.min(BOARD_HEIGHT - 1, newY + 1); break;
+                    case 'a': case 'arrowleft': newX = Math.max(0, newX - 1); break;
+                    case 'd': case 'arrowright': newX = Math.min(BOARD_WIDTH - 1, newX + 1); break;
+                    case ' ': 
+                        if (Math.abs(selectedTile.x - newX) + Math.abs(selectedTile.y - newY) === 1) {
+                            handleTileClick(newX, newY);
+                        }
+                        return;
+                }
+                if (Math.abs(selectedTile.x - newX) + Math.abs(selectedTile.y - newY) === 1) {
+                    handleTileClick(newX, newY);
+                }
+            }
+        });
+        
+        console.log('🎮 Applaa game preview loaded successfully! Type: puzzle - Fruits Line Match');
+    </script>
+</body>
+</html>

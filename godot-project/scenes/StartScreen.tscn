@@ -1,0 +1,66 @@
+[gd_scene load_steps=2 format=3 uid="uid://start_screen"]
+
+[ext_resource type="Script" path="res://scripts/StartScreen.gd" id="1_startscreen"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_12345"]
+bg_color = Color(0.2, 0.2, 0.2, 0.8)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.5, 0, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="StartScreen" type="Node2D"]
+script = ExtResource("1_startscreen")
+
+[node name="Background" type="ColorRect" parent="."]
+offset_right = 800.0
+offset_bottom = 600.0
+color = Color(0.1, 0.1, 0.1, 1)
+
+[node name="Title" type="Label" parent="."]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 150.0
+offset_right = 200.0
+offset_bottom = 200.0
+text = "Fruits Line Match"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 36
+
+[node name="Instructions" type="Label" parent="."]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 250.0
+offset_right = 300.0
+offset_bottom = 350.0
+text = "Swap adjacent fruits to create lines of 3 or more.
+Earn points and complete objectives!
+
+Controls: Click to select, click adjacent to swap.
+W/A/S/D to navigate, Space to confirm."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="StartButton" type="Button" parent="."]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -100.0
+offset_top = -150.0
+offset_right = 100.0
+offset_bottom = -100.0
+theme_override_styles/normal = SubResource("StyleBoxFlat_12345")
+text = "Start Game"
